@@ -44,6 +44,7 @@ class HoverAPI(object):
         logger.info("%s" % url)
         r = requests.request(method, url, data=data, cookies=self.cookies)
         if not r.ok:
+            print(r)
             raise HoverException(r)
         if r.content:
             body = r.json()
@@ -111,7 +112,6 @@ if __name__ == "__main__":
         domains = os.environ['DOMAINS']
     if args.domains is not None:
         domains = args.domains
-    daemon(domains=domains, user=args.user, password=args.password, sleep=args.sleep)
-
+    daemon(domains=domains, user=args.user, password=args.password, sleep=args.sleep) 
 # parsecd wants to use your confidential infor,ation stored in "Proxies" in your keychain.
 # To allow this, enter the "login" keychain password
