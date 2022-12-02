@@ -1,0 +1,33 @@
+version: "3.9"
+services:
+  dynip:
+    build:
+      args:
+        ALPINE_VERSION: "3.17.0"
+      context: .
+      dockerfile: Containerfile
+      no_cache: true
+      tags:
+        - "dynip:dev"
+    image: "dynip:dev"
+    ports:
+      - "8080:8080"
+    volumes:
+      - "container:/mnt/volumes/container"
+      - "backup:/mnt/volumes/backup"
+        
+volumes:
+  container:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /Users/mada/Workspace/dynip/container-volume
+  backup:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /Users/mada/Workspace/dynip/backup-volume
+      
+

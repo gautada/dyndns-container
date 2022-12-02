@@ -1,0 +1,26 @@
+#!/bin/ash
+#
+# entrypoint: Located at `/etc/container/entrypoint` this script is the custom
+#             entry for a container as called by `/usr/bin/container-entrypoint` set
+#             in the upstream [alpine-container](https://github.com/gautada/alpine-container).
+#             The default template is kept in
+#             [gist](https://gist.github.com/gautada/f185700af585a50b3884ad10c2b02f98)
+
+ENTRYPOINT_PARAMS="$@"
+. /etc/profile
+
+if [ -z "$@" ] ; then
+  log "-i" "entrypoint" "default"
+  /usr/bin/pgrep client > /dev/null
+  TEST=$?
+  if [ $TEST -eq 1 ] ; then
+   log "-i" "entrypoint" "Blocking application - client(1.0.0)"
+   /usr/bin/client --config /etc/container/dynip.yml
+  fi
+  return 1
+else
+ log "-i" "entrypoint" "Override default($ENTRYPOINT_PARAMS)"
+ log "-i" "entrypoint" "Detatched application - gitea(1.0.0)"
+    /usr/bin/client --config /etc/container/dynip.yml >> /mnt/volumes/container/app.log 2>&1 &
+ return 0
+fi

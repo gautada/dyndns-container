@@ -13,11 +13,13 @@ __status__ = "Development"
 
 import os
 import argparse
+import hashlib
 import requests
 import json
 import time
 import logging
 import sys
+import yaml
 
 # Sign into hover.com and then go to: https://www.hover.com/api/domains/YOURDOMAIN.COM/dns
 # Look for the subdomain record that you want to update and put its id here.
@@ -55,7 +57,7 @@ class HoverAPI(object):
 def daemon(domains=None, host=None, user=None, password=None, sleep=60):
     while True:
         try:
-            for fqdn in domains.split(','):
+            for fqdn in domains: # domains.split(','):
                 fqdn = fqdn.strip()
                 split = fqdn.split('.')
                 assert 3 == len(split), "Domain[%s] must be fully qualified as 'host.domain.tld'" % fqdn
@@ -93,7 +95,7 @@ def daemon(domains=None, host=None, user=None, password=None, sleep=60):
                     old_ip = new_ip
                 else:
                     print("No updates sent to Hover [%s]" % old_ip)
-        
+                time.sleep(10)
             print("Sleeping %s seconds until next check" % (SLEEPTIME*sleep))
             time.sleep(SLEEPTIME*sleep)
             print("Waking from rest and checking current IP address")
@@ -102,16 +104,58 @@ def daemon(domains=None, host=None, user=None, password=None, sleep=60):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Set Dynamic DNS (for Hover) Daemon.')
+    parser.add_argument('--config', default=None, help='Path to configuration file')
     parser.add_argument('--domains', default=None, help='Comma delimited list of fully qualified domain names')
     parser.add_argument('--user', help='The user name of the hover account')
     parser.add_argument('--password', help='The password of the hover account')
     parser.add_argument('--sleep', type=int, default=60, help='Minutes to sleep between updates')
     args = parser.parse_args()
-    domains = ""
+
+    config = None
+    if args.config is not None:
+        with open(args.config, "r") as file:
+            data = file.read()
+            config = yaml.safe_load(data)
+
+    user = None
+    if 'user' in config.keys():
+        user = config['user']
+    if 'DYNIP_USER' in os.environ.keys():
+        user = os.environ['DYNIP_USER']
+    if args.user is not None:
+        user = args.user
+
+    password = None
+    if 'password' in config.keys():
+        password = config['password']
+    if 'DYNIP_PASSWORD' in os.environ.keys():
+        password = os.environ['DYNIP_PASSWORD']
+    if args.password is not None:
+        password = args.password
+   
+    sleep = args.sleep
+    if 'sleep' in config.keys():
+        sleep = config['sleep']
+    if 'DYNIP_SLEEP' in os.environ.keys():
+        sleep = os.environ['DYNIP_SLEEP']
+
+    domains = []
+    if 'domains' in config.keys():
+        for tmp in config['domains']:
+            domain = list(tmp.keys())[0]
+            hosts = list(tmp.values())[0]
+            for host in hosts:
+                domains.append("%s.%s" % (host, domain))
     if 'DOMAINS' in os.environ.keys():
-        domains = os.environ['DOMAINS']
+        tmp = os.environ['DOMAINS']
+        domains = tmp.split(",")
     if args.domains is not None:
-        domains = args.domains
-    daemon(domains=domains, user=args.user, password=args.password, sleep=args.sleep) 
-# parsecd wants to use your confidential infor,ation stored in "Proxies" in your keychain.
-# To allow this, enter the "login" keychain password
+        tmp = args.domains
+        domains = tmp.split(",")
+
+    hash = hashlib.md5(password.encode())
+    print(user, hash.hexdigest(), sleep)
+    print(domains)
+
+    daemon(domains=domains, user=user, password=password, sleep=sleep)
+
