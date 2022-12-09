@@ -21,6 +21,6 @@ if [ -z "$@" ] ; then
 else
  log "-i" "entrypoint" "Override default($ENTRYPOINT_PARAMS)"
  log "-i" "entrypoint" "Detatched application - gitea(1.0.0)"
-    /usr/bin/client --config /etc/container/dynip.yml >> /mnt/volumes/container/app.log 2>&1 &
+    /usr/bin/client --config /etc/container/dynip.yml >> /mnt/volumes/container/_log 2>&1 &
  return 0
 fi
