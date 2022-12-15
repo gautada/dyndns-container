@@ -6,7 +6,10 @@
 
 ## Features
 
-- {List specific features that are considered important}
+- Microservice - https://fastapi.tiangolo.com based service
+- Plugin Architecture
+ - Hover Plugin - Client hacked for hover updates.
+- Client - A cli client for use with crond
 
 ### Feature Detail
 

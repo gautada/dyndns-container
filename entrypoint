@@ -11,16 +11,18 @@ ENTRYPOINT_PARAMS="$@"
 
 if [ -z "$@" ] ; then
   log "-i" "entrypoint" "default"
-  /usr/bin/pgrep client > /dev/null
+  /usr/bin/pgrep uvicorn > /dev/null
   TEST=$?
   if [ $TEST -eq 1 ] ; then
    log "-i" "entrypoint" "Blocking application - client(1.0.0)"
-   /usr/bin/client --config /etc/container/dynip.yml
+   # /usr/bin/client --config /etc/container/dynip.yml
+   /usr/bin/uvicorn server:app --host 0.0.0.0 --port 8080
   fi
   return 1
 else
  log "-i" "entrypoint" "Override default($ENTRYPOINT_PARAMS)"
  log "-i" "entrypoint" "Detatched application - gitea(1.0.0)"
-    /usr/bin/client --config /etc/container/dynip.yml >> /mnt/volumes/container/app.log 2>&1 &
+ # /usr/bin/client --config /etc/container/dynip.yml >> /mnt/volumes/container/_log 2>&1 &
+ /usr/bin/uvicorn server:app --host 0.0.0.0 --port 8080 --reload >> /mnt/volumes/container/_log 2>&1 &
  return 0
 fi
