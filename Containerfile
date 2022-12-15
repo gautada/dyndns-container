@@ -26,7 +26,7 @@ LABEL description="This is a dynamic ip client for Hover.com"
 # ╰――――――――――――――――――――╯
 
 # USER:
-ARG USER=dynip
+ARG USER=dyndns
 
 ARG UID=1001
 ARG GID=1001
@@ -57,11 +57,21 @@ RUN /bin/chown -R $USER:$USER /mnt/volumes/container \
 # ╰――――――――――――――――――――╯
 RUN apk add --no-cache --update python3
 RUN apk add --no-cache py3-pip py3-requests py3-yaml
-RUN /bin/ln -fsv /mnt/volumes/container/dynip.yml /mnt/volumes/configmaps/dynip.yml
-RUN /bin/ln -fsv /mnt/volumes/configmaps/dynip.yml /etc/container/dynip.yml
+RUN pip install fastapi
+RUN pip install "uvicorn[standard]"
 
-COPY client.py /usr/bin/client
-COPY check.py /home/$USER/check.py
+RUN /bin/ln -fsv /mnt/volumes/container/dyndns.yml /mnt/volumes/configmaps/dyndns.yml
+RUN /bin/ln -fsv /mnt/volumes/configmaps/dyndns.yml /etc/container/dyndns.yml
+
+COPY client.py /home/$USER/client.py
+COPY server.py /home/$USER/server.py
+COPY dyndns.py /home/$USER/dyndns.py
+COPY dyndns_plugin.py /home/$USER/dyndns_plugin.py
+COPY hover_plugin.py /home/$USER/hover_plugin.py
+COPY dyndns-update-ip /usr/bin/dyndns-update-ip
+RUN /bin/ln -fsv /usr/bin/dyndns-update-ip /etc/periodic/hourly/dyndns-update-ip
+
+# COPY check.py /home/$USER/check.py
 
 
 # ╭――――――――――――――――――――╮
