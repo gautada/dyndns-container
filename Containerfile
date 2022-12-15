@@ -69,7 +69,7 @@ COPY dyndns.py /home/$USER/dyndns.py
 COPY dyndns_plugin.py /home/$USER/dyndns_plugin.py
 COPY hover_plugin.py /home/$USER/hover_plugin.py
 COPY dyndns-update-ip /usr/bin/dyndns-update-ip
-RUN /bin/ln -fsv /usr/bin/dyndns-update-ip /etc/periodic/hourly/dyndns-update-ip
+RUN /bin/ln -fsv /usr/bin/dyndns-update-ip /etc/periodic/15min/dyndns-update-ip
 
 # COPY check.py /home/$USER/check.py
 

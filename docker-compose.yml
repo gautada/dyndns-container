@@ -1,6 +1,6 @@
 version: "3.9"
 services:
-  dynip:
+  dyndns:
     build:
       args:
         ALPINE_VERSION: "3.17.0"
@@ -8,8 +8,8 @@ services:
       dockerfile: Containerfile
       no_cache: true
       tags:
-        - "dynip:dev"
-    image: "dynip:dev"
+        - "dyndns:dev"
+    image: "dyndns:dev"
     ports:
       - "8080:8080"
     volumes:
@@ -22,12 +22,12 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /Users/mada/Workspace/dynip/container-volume
+      device: /Users/mada/Workspace/dyndns/container-volume
   backup:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /Users/mada/Workspace/dynip/backup-volume
+      device: /Users/mada/Workspace/dyndns/backup-volume
       
 
