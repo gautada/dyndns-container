@@ -39,7 +39,7 @@ RUN /usr/sbin/addgroup -g $GID $USER \
 # COPY wheel  /etc/container/wheel
 
 # BACKUP: This container's state is maintained in configuration files'
-# COPY backup /etc/container/backup
+COPY backup /etc/container/backup
 
 # ENTRYPOINT: No entrypoint this container just uses crond
 RUN rm -v /etc/container/entrypoint

@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# backup: Overrides the `container-backup()` function from the upstream container
+#         this file should be coppied to /etc/container/backup` via the 'Containerfile`.
+
+container_backup() {
+ /bin/cp /etc/container/dyndns.yml ./
+}
+
