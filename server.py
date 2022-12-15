@@ -75,8 +75,9 @@ def update_host(field: Field):
         return {"status": "exception",
                 "message": "%s" % e}
 
-
-"""
-@app.post("/field/{plugin}/{domain}/{field}/")
-def update_field(ip: str):
-"""
+@app.get("/health")
+def read_ip():
+    return {
+     "status": "success",
+     "health": True
+    }
