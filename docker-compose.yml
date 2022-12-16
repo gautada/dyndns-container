@@ -3,7 +3,7 @@ services:
   dyndns:
     build:
       args:
-        ALPINE_VERSION: "3.17.0"
+        ALPINE_VERSION: "latest"
       context: .
       dockerfile: Containerfile
       no_cache: true
