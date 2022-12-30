@@ -66,7 +66,7 @@ def get_field(plugin: str, domain: str, name: str):
                 "message": "%s" % e }
 
 @app.post("/field")
-def update_host(field: Field):
+def update_field(field: Field):
     try:
         rtn = dyndns.field(plugin=field.plugin, domain=field.domain, name=field.name, content=field.content)
         return { "status": "success",
