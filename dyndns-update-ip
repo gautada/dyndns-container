@@ -1,4 +1,5 @@
 #!/bin/ash
 
 cd /home/dyndns
-./client.py
+/usr/bin/python3 update-ip.py --config /etc/container/dyndns.yml --url http://localhost:8080
+

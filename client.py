@@ -9,81 +9,98 @@ __maintainer__ = "Adam Gautier"
 __email__ = "adam@gautier.org"
 __status__ = "Development"
 
+import argparse
 import sys
 import requests
 import yaml
 import time
 
-ALLOWED_PLUGINS = ['hover']
+# from dyndns_plugin import DynDNSPluginException, dyndnslog
 
-configfile="/etc/container/dyndns.yml"
-config = None
-with open(configfile, "r") as file:
-    data = file.read()
-    config = yaml.safe_load(data)
-
-
-ip = None
-try:
-    response = requests.request("get", "http://localhost:8080/ip")
-    #, data=None, cookies=self.__cookies)
-except Exception as e:
-    print(e)
-    sys.exit(1)
-
-if response.ok:
-    data = response.json()
-    if "success" == data['status']:
-        ip = data['IP']['current']
-    else:
-        print(data)
-        sys.exit(1)
-else:
-    print(response.status_code, response.text)
-    sys.exit(1)
+class DynDNSClient():
+    
+    def __init__(self, url, verbose=False):
+        self.__url = url
+        self.__verbose = verbose
+        self.__response = None
         
-"""
-    def __call(self, method, resource, data=None):
-        self.__last_response = None
-        url = (self.__url + "{0}").format(resource)
-        dyndnslog.info("HoverPlugin call(%s): %s" % (method, url))
+    def __call(self, method, url, data=None):
+        response = None
+        print("DynDNS __call(%s): %s" % (method, url))
         try:
-            self.__last_response = requests.request(method, url, data=data, cookies=self.__cookies)
+            self.__response = requests.request(method, url, data=data)
         except Exception as e:
             msg = e
             if hasattr(e, 'message'):
                 msg = e.message
-            raise DynDNSPluginException("Exception(%s): %s" % (type(e), msg))
-        if self.__last_response.ok:
-            body = self.__last_response.json()
-            if "succeeded" not in body or body["succeeded"] is not True:
-                raise DynDNSPluginException("%s: (%s) %s" % (self.__last_response.url, self.__last_response.status_code, self.__last_response.text))
+            raise Exception("Exception(%s): %s" % (type(e), msg))
+        if self.__response.ok:
+            body = self.__response.json()
+            if "status" not in body or body["status"] != 'success':
+                raise Exception("%s: (%s) %s" % (self.__response.url, self.__response.status_code, self.__response.text))
             return body
         else:
-            raise DynDNSPluginException("%s: (%s) %s" % (self.__last_response.url, self.__last_response.status_code, self.__last_response.text))
-"""
+            raise Exception("%s: (%s) %s" % (self.__response.url, self.__response.status_code, self.__response.text))
+        return response.json()
+    
+    @property
+    def url(self):
+        return self.__url
+        
+    @property
+    def verbose(self):
+        return self.__verbose
+    
+    @property
+    def response(self):
+        return self.__response
+    
+    @property
+    def ip(self):
+        response = self.__call("get", "%s/ip" % self.url)
+        print(response)
+        return response['IP']['current']
+        
+    def record(self, plugin=None, domain=None, record_type=None, name=None, content=None):
+        assert plugin is not None, "plugin cannot be nil."
+        assert domain is not None, "domain cannot be nil."
+        assert record_type is not None, "record type cannot be nil."
+        assert name is not None, "name cannot be nil."
+        if content is None:
+            return self.__call("get", "%s/record/%s/%s/%s/%s" % (self.url, plugin, domain, record_type, name))
+        else:
+            data = '{"value":"%s"}' % (content)
+            print("Pushing data %s" % data)
+            return self.__call("post", "%s/record/%s/%s/%s/%s" % (self.url, plugin, domain, record_type, name), data=data)
+        
+        
+def main(args):
+    client = DynDNSClient(url=args.url, verbose=args.verbose)
+    if "ip" == args.command:
+        print(client.ip)
+    elif "record" == args.command:
+        print(client.record(plugin=args.plugin, domain=args.domain, record_type=args.record_type, name=args.name, content=args.content))
+        
+def record_command():
+    print("record command")
+    
+if __name__ == "__main__":
+    parent_parser = argparse.ArgumentParser(description='Test cli for DynDNS Client.', add_help=False)
+    parent_parser.add_argument('--url', default='http://localhost:8080', help='API endpoint url')
+    parent_parser.add_argument('--verbose', action=argparse.BooleanOptionalAction, help='Verbose output')
+    
+    main_parser = argparse.ArgumentParser()
+    subparsers = main_parser.add_subparsers(title="command", dest="command")
+                    
+    parser_ip = subparsers.add_parser('ip', help='Returns the current IP address', parents=[parent_parser])
+    
+    record_parser = subparsers.add_parser('record', help='Manages DNS records', parents=[parent_parser])
+    record_parser.add_argument('--plugin', default='hover', help='The plugin to use for the calls')
+    record_parser.add_argument('--domain', help='A domain to access')
+    record_parser.add_argument('--record_type', help='The DNS record type (A, TXT, CNAME, ...)accessing')
+    record_parser.add_argument('--name', default=None, help='The DNS record name')
+    record_parser.add_argument('--content', default=None, help='The content value to write into the DNS record')
 
-for conf in config['plugins']:
-    if conf['name'] in ALLOWED_PLUGINS:
-        plugin = conf['name']
-        print( conf['domains'] )
-        for domain, hosts in conf['domains'].items():
-            for host in hosts:
-                print(plugin, domain, host, ip)
-                try:
-                    data = '{"plugin":"%s", "domain":"%s", "name":"%s", "content":"%s"}' % (plugin, domain, host, ip)
-                    response = requests.request("post", "http://localhost:8080/host", data=data, headers={"Content-Type": "application/json"})
-                except Exception as e:
-                    print(e)
-                    sys.exit(1)
-                if response.ok:
-                    data = response.json()
-                    if "success" == data['status']:
-                        print(data)
-                    else:
-                        print(data)
-                        sys.exit(1)
-                else:
-                    print(response.status_code, response.text)
-                    sys.exit(1)
-                time.sleep(5)
+    args = main_parser.parse_args()
+    
+    main(args)
