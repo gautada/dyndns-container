@@ -29,14 +29,9 @@ class DynDNSPlugin(object):
     KEY_LAST = "last"
     KEY_OLD = "old"
     
-    def host(self, domain, name, content=None):
+    def record(self, domain, record_type, name, content=None):
         raise DynDNSPluginException("Method not implemented")
         
-    def hosts(self, domain):
+    def records(self, domain):
         raise DynDNSPluginException("Method not implemented")
-        
-    def field(self, domain, name, content=None):
-        raise DynDNSPluginException("Method not implemented")
-
-    def fields(self, domain):
-        raise DynDNSPluginException("Method not implemented")
+    

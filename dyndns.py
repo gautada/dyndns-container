@@ -45,8 +45,6 @@ class DynDNS(object):
                 assert 'password' in _config, "No password provided in plugin configuration"
                 self.__plugins[_config['name']] = {'config':_config, 'plugin':HoverPlugin(_config['username'], _config['password'])}
         
-        
-        
     def __fetch_ip(self):
         ip = self.__ip
         now = datetime.datetime.now().timestamp()
@@ -60,7 +58,7 @@ class DynDNS(object):
                     self.__ip_timestamp = now
                 else:
                     msg = "Invalid HTTP response code[url:%s code:%s] %s" % (response.url, response.status_code, response.text)
-                    logger.error(msg)
+                    dyndnslog.error(msg)
                     raise DynDNSException(msg)
             except Exception as e1:
                 msg = "EXCEPTION %s %s" % (type(e1), e1)
@@ -75,18 +73,16 @@ class DynDNS(object):
         self.__ip = ip_new
         return response
             
-
-    def host(self, plugin, domain, name, content=None):
+    def record(self, plugin, domain, record_type, name, content=None):
+        assert plugin is not None, "plugin cannot be nil."
+        assert domain is not None, "domain cannot be nil."
+        assert record_type is not None, "record type cannot be nil."
+        assert name is not None, "name cannot be nil."
+        dyndnslog.info("RECORD: plugin:%s type:%s domain:%s name:%s content:%s" % (plugin, record_type, domain, name, content is not None))
         if plugin not in self.__plugins:
             raise DynDNSPluginException("Plugin(%s) not found" % plugin)
         _plugin = self.__plugins[plugin]
-        return _plugin['plugin'].host(domain, name, content)
-
-    def field(self, plugin, domain, name, content=None):
-        if plugin not in self.__plugins:
-            raise DynDNSPluginException("Plugin(%s) not found" % plugin)
-        _plugin = self.__plugins[plugin]
-        return _plugin['plugin'].field(domain, name, content)
+        return _plugin['plugin'].record(domain=domain, record_type=record_type, name=name, content=content)
 
 
 if __name__ == "__main__":
@@ -95,10 +91,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     dyndns = DynDNS(args.config)
-    host = dyndns.host(plugin='hover', domain='gautier.org', host='psql', ip=dyndns.ip['current'])
+    host = dyndns.record(plugin='hover', domain='gautier.org', record_type='A', name='psql', content=dyndns.ip['current'])
     print(host)
     
     # iqgGk7BVsd6Kt_knLt-mXhwlTIlYWcMBn9_pD3fAVU8
     val = "INVALID: %s" % datetime.datetime.now()
-    field = dyndns.field(plugin='hover', domain='gautier.org', key='_acme-challenge.cicd', value=val)
+    field = dyndns.record(plugin='hover', domain='gautier.org', record_type='TXT', name='_acme-challenge.msql', content=val)
     print(field)

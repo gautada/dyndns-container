@@ -59,7 +59,7 @@ class HoverPlugin(DynDNSPlugin):
         else:
             raise DynDNSPluginException("%s: (%s) %s" % (self.__last_response.url, self.__last_response.status_code, self.__last_response.text))
             
-    def __records(self, domain, force=False):
+    def records(self, domain, force=False):
         assert domain is not None, "Domain cannot be null."
         if self.__cache is None:
             self.__cache = {}
@@ -102,76 +102,59 @@ class HoverPlugin(DynDNSPlugin):
         
         dyndnslog.info("Records [ttl:%s last:%s delta:%s]" % (ttl, last, delta))
         return self.__cache[domain]
+
+    def record(self, domain=None, record_type=None, name=None, content=None):
+        assert domain is not None, "domain cannot be nil."
+        assert record_type is not None, "record type cannot be nil."
+        assert name is not None, "name cannot be nil."
         
-    def host(self, domain, name, content=None):
-        hosts = self.hosts(domain)
-        if name not in hosts:
-            raise DynDNSPluginException("Host(%s) not found in domain(%s)" % (name, domain))
+        records = self.records(domain)
+        record = None
+        for _record in records:
+            if name == _record[DynDNSPlugin.KEY_NAME]:
+                record = _record
+        assert record is not None, "Record(%s) not found in domain(%s)" % (name, domain)
+        assert record[DynDNSPlugin.KEY_TYPE] == record_type, "Record type(%s) must match %s" % (record[ynDNSPlugin.KEY_TYPE], record_type)
         
-        _host = hosts[name]
-        if content is not None:
-            if content != _host[DynDNSPlugin.KEY_CONTENT]:
-                _host[DynDNSPlugin.KEY_OLD] = _host[DynDNSPlugin.KEY_CONTENT]
-                dyndnslog.info("Updating %s.%s=ip(%s) " % (name, domain, content))
-                self.__call("put", "dns/" + _host[DynDNSPlugin.KEY_ID], {"content": content})
-                self.__records(domain, force=True)
-                _host[DynDNSPlugin.KEY_CONTENT] = content
-        return _host
+        if content is None:
+            return record
+        if content == record[DynDNSPlugin.KEY_CONTENT]:
+            dyndnslog.info("Skip Update %s.%s already equals %s " % (name, domain, content))
+            return record
         
+        dyndnslog.info("Updating %s.%s to equal %s " % (name, domain, content))
+        record[DynDNSPlugin.KEY_OLD] = record[DynDNSPlugin.KEY_CONTENT]
+        self.__call("put", "dns/" + record[DynDNSPlugin.KEY_ID], {"content": content})
+        self.records(domain, force=True)
+        record[DynDNSPlugin.KEY_CONTENT] = content
+        return record
         
-    def hosts(self, domain):
-        hosts = {}
-        records = self.__records(domain)
-        for record in records:
-            if record[DynDNSPlugin.KEY_TYPE] in HoverPlugin.HOST_RECORD_TYPES:
-                hosts[record[DynDNSPlugin.KEY_NAME]] = record
-        dyndnslog.debug("Hosts(%s) found for domain(%s)" % (len(hosts), domain))
-        return hosts
-    
-    def field(self, domain, name, content=None):
-        fields = self.fields(domain)
-        if name not in fields:
-            raise DynDNSPluginException("Field(%s) not found in domain(%s)" % (name, domain))
-        
-        _field = fields[name]
-        if content is not None:
-            if content != _field[DynDNSPlugin.KEY_CONTENT]:
-                _field[DynDNSPlugin.KEY_OLD] = _field[DynDNSPlugin.KEY_CONTENT]
-                dyndnslog.info("Updating %s.%s=content(%s) " % (name, domain, content))
-                self.__call("put", "dns/" + _field[DynDNSPlugin.KEY_ID], {"content": content})
-                self.__records(domain, force=True)
-                _field[DynDNSPlugin.KEY_CONTENT] = content
-        return _field
-        
-    def fields(self, domain):
-        fields = {}
-        records = self.__records(domain)
-        for record in records:
-            if record[DynDNSPlugin.KEY_TYPE] in HoverPlugin.FIELD_RECORD_TYPE:
-                fields[record[DynDNSPlugin.KEY_NAME]] = record
-        dyndnslog.debug("Field(%s) found for domain(%s)" % (len(fields), domain))
-        return fields
-    
-    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Test cli for HoverPlugin.')
     parser.add_argument('--domain', help='A domain to access')
-    parser.add_argument('--host', help='A host to access')
+    parser.add_argument('--record_type', help='The DNS record type (A, TXT, CNAME, ...)accessing')
+    parser.add_argument('--name', default=None, help='The DNS record name')
+    parser.add_argument('--content', default=None, help='The content value to write into the DNS record')
     parser.add_argument('--username', help='The user name of the hover account')
     parser.add_argument('--password', help='The password of the hover account')
     args = parser.parse_args()
 
     hover = HoverPlugin(username=args.username, password=args.password)
-    hosts = hover.hosts(args.domain)
-    print(hosts)
-    print(hover.host(args.domain, "@"))
-    print(hover.host(args.domain, "*"))
-    try:
-        print(hover.host(args.domain, None))
-    except Exception as e1:
-        print("EXCEPTION", e1)
-    try:
-        print("EXCEPTION",hover.host(args.domain, 123))
-    except Exception as e2:
-        print(e2)
-    print(hover.host(args.domain, args.host))
+    records = hover.records(args.domain)
+    print("All Records")
+    for record in records:
+        print(record)
+    print("-------------")
+    
+    
+    if args.name is not None:
+        print("Record: %s (current value)" % args.name)
+        record = hover.record(domain=args.domain, record_type=args.record_type, name=args.name, content=None)
+        print( record )
+        print()
+    
+    if args.content is not None:
+        print("Record: %s (new value)" % args.name)
+        record = hover.record(domain=args.domain, record_type=args.record_type, name=args.name, content=args.content)
+        print( record )
+        print
